@@ -15,17 +15,17 @@ export default function Cart() {
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
       {/* Fondo oscuro (Overlay) */}
-      <div 
+      <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={toggleCart} // Click afuera cierra el carrito
       ></div>
 
       {/* Cajón lateral */}
       <div className="relative w-full max-w-md bg-neutral-900 h-full shadow-2xl p-6 flex flex-col border-l border-neutral-800">
-        
+
         <div className="flex justify-between items-center mb-8 border-b border-neutral-800 pb-4">
           <h2 className="text-2xl font-bold text-white">TU PEDIDO</h2>
-          <button onClick={toggleCart} className="text-gray-400 hover:text-white">
+          <button onClick={toggleCart} aria-label="Cerrar carrito" className="text-gray-400 hover:text-white">
             ✕ CERRAR
           </button>
         </div>
@@ -44,8 +44,9 @@ export default function Cart() {
                   <p className="text-yellow-400 font-mono mt-1">${item.precio}</p>
                 </div>
                 <div className="flex flex-col justify-between items-end">
-                  <button 
+                  <button
                     onClick={() => removeItem(item.id, item.talla)}
+                    aria-label={`Eliminar ${item.nombre} talla ${item.talla} del carrito`}
                     className="text-red-500 text-xs hover:underline"
                   >
                     Eliminar
@@ -66,8 +67,35 @@ export default function Cart() {
               <span className="text-gray-400">Total a Pagar:</span>
               <span className="text-2xl font-bold text-yellow-400">${total.toFixed(2)}</span>
             </div>
-            <button 
-              onClick={() => alert("¡Aquí integraríamos Stripe o MercadoPago!")}
+            <button
+              onClick={async () => {
+                // VALIDACIÓN DE STOCK AL VUELO
+                // En un proyecto real, esto iría al backend para reservar stock.
+                // Aquí solo validamos antes de "pasar a la pasarela".
+                let stockOk = true;
+                const { supabase } = await import('../lib/supabase'); // Import dinámico para no cargar si no se usa
+
+                for (const item of items) {
+                  const { data, error } = await supabase
+                    .from('zapatillas')
+                    .select('inventario')
+                    .eq('id', item.id)
+                    .single();
+
+                  if (data && data.inventario) {
+                    const stockDisponible = data.inventario[item.talla] || 0;
+                    if (stockDisponible < item.cantidad) {
+                      alert(`¡Ups! Solo quedan ${stockDisponible} pares de ${item.nombre} (Talla ${item.talla}). Tienes ${item.cantidad} en el carrito.`);
+                      stockOk = false;
+                      break;
+                    }
+                  }
+                }
+
+                if (stockOk) {
+                  alert("¡Stock validado! Redirigiendo a pago...");
+                }
+              }}
               className="w-full bg-yellow-400 text-black font-bold py-4 rounded hover:bg-yellow-300 transition-colors uppercase tracking-wide"
             >
               Finalizar Compra

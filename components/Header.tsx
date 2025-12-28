@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 export default function Header() {
   const { items, toggleCart } = useCartStore();
   const [animate, setAnimate] = useState(false);
-  
+
   // Calculamos cantidad de items y el DINERO total
   const totalItems = items.reduce((acc, item) => acc + item.cantidad, 0);
   const totalPrice = items.reduce((acc, item) => acc + (item.precio * item.cantidad), 0);
@@ -24,15 +24,16 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-40 w-full border-b border-neutral-800 bg-black/80 backdrop-blur-md">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        
+
         {/* LOGO */}
-        <div className="font-black text-xl text-white tracking-tighter cursor-pointer" onClick={() => window.scrollTo(0,0)}>
+        <div className="font-black text-xl text-white tracking-tighter cursor-pointer" onClick={() => window.scrollTo(0, 0)}>
           MI<span className="text-yellow-400">TIENDA</span>
         </div>
 
         {/* BOTÓN DEL CARRITO MEJORADO */}
-        <button 
-          onClick={toggleCart} 
+        <button
+          onClick={toggleCart}
+          aria-label={totalItems > 0 ? `Ver carrito con ${totalItems} productos` : "Ver carrito vacío"}
           className={`
             relative flex items-center gap-3 transition-all duration-300
             ${totalItems > 0 ? 'bg-white text-black pl-4 pr-2 py-1.5 rounded-full hover:bg-yellow-400' : 'text-white hover:text-yellow-400'}
@@ -53,12 +54,12 @@ export default function Header() {
 
           {/* El Icono */}
           <div className="relative">
-            <svg 
-              xmlns="http://www.w3.org/2000/svg" 
-              fill="none" 
-              viewBox="0 0 24 24" 
-              strokeWidth={1.5} 
-              stroke="currentColor" 
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
               className="w-6 h-6"
             >
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5V6a3.75 3.75 0 1 0-7.5 0v4.5m11.356-1.993 1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 0 1-1.12-1.243l1.264-12A1.125 1.125 0 0 1 5.513 7.5h12.974c.576 0 1.059.435 1.119 1.007ZM8.625 10.5a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Z" />
