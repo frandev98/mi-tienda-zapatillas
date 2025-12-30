@@ -6,18 +6,21 @@ interface ProductoCarrito {
   nombre: string;
   precio: number;
   imagen_url: string;
-  talla: string; // ¡Importante! La talla que eligió el cliente
+  talla: string;
   cantidad: number;
+  maxStock: number; // Para validar en el carrito sin volver a consultar
 }
 
 interface CarritoState {
   items: ProductoCarrito[];
-  isCartOpen: boolean; // Para abrir/cerrar la ventanita del carrito
-  
-  // Acciones (Funciones para modificar el carrito)
+  isCartOpen: boolean;
+
+  // Acciones
   addItem: (producto: ProductoCarrito) => void;
   removeItem: (id: number, talla: string) => void;
-  toggleCart: () => void; // Abrir o cerrar
+  incrementItem: (id: number, talla: string) => void;
+  decrementItem: (id: number, talla: string) => void;
+  toggleCart: () => void;
   clearCart: () => void;
 }
 
@@ -31,31 +34,57 @@ export const useCartStore = create<CarritoState>((set) => ({
       (item) => item.id === nuevoProducto.id && item.talla === nuevoProducto.talla
     );
 
-    // 2. Si existe, solo aumentamos la cantidad (No agregamos otro renglón)
+    // 2. Si existe, solo aumentamos la cantidad, validando maxStock
     if (existe) {
+      const nuevaCantidad = existe.cantidad + 1;
+
+      if (nuevaCantidad > nuevoProducto.maxStock) {
+        return { items: state.items };
+      }
+
       return {
         items: state.items.map((item) =>
           item.id === nuevoProducto.id && item.talla === nuevoProducto.talla
-            ? { ...item, cantidad: item.cantidad + 1 }
+            ? { ...item, cantidad: nuevaCantidad, maxStock: nuevoProducto.maxStock }
             : item
         ),
-        // isCartOpen: true, // Abrimos el carrito automáticamente al comprar
       };
     }
 
-    // 3. Si no existe, lo agregamos al array
+    // 3. Si no existe, lo agregamos
     return {
       items: [...state.items, { ...nuevoProducto, cantidad: 1 }],
-    //   isCartOpen: true,
+      // isCartOpen: true, // Desactivado por petición del usuario
     };
   }),
 
   removeItem: (id, talla) => set((state) => ({
-    // Filtramos para quitar el que coincida en ID y Talla
     items: state.items.filter((item) => !(item.id === id && item.talla === talla)),
   })),
 
+  incrementItem: (id, talla) => set((state) => ({
+    items: state.items.map((item) => {
+      if (item.id === id && item.talla === talla) {
+        if (item.cantidad < item.maxStock) {
+          return { ...item, cantidad: item.cantidad + 1 };
+        }
+      }
+      return item;
+    }),
+  })),
+
+  decrementItem: (id, talla) => set((state) => ({
+    items: state.items.map((item) => {
+      if (item.id === id && item.talla === talla) {
+        if (item.cantidad > 1) {
+          return { ...item, cantidad: item.cantidad - 1 };
+        }
+      }
+      return item;
+    }),
+  })),
+
   toggleCart: () => set((state) => ({ isCartOpen: !state.isCartOpen })),
-  
+
   clearCart: () => set({ items: [] }),
 }));

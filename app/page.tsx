@@ -8,9 +8,9 @@ export const dynamic = 'force-dynamic';
 export default async function Home() {
 
   // 1. CARGA INICIAL: Pedimos TODO a la base de datos una sola vez
-  const { data: zapatillas } = await supabase
+  const { data: zapatillas, count } = await supabase
     .from('zapatillas')
-    .select('*')
+    .select('*', { count: 'exact' })
     .order('id', { ascending: true })
     .limit(12); // Límite inicial para optimizar carga (Tip de Auditoría)
 
@@ -34,7 +34,7 @@ export default async function Home() {
 
       {/* 2. AQUÍ INYECTAMOS EL CATALOGO INTERACTIVO */}
       {/* Le pasamos la lista y él se encarga de filtrar sin recargar la página */}
-      <ProductCatalog zapatillas={listaZapatillas} />
+      <ProductCatalog zapatillas={listaZapatillas} totalItems={count || 0} />
 
       <TrustSection />
 

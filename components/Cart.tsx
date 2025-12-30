@@ -1,10 +1,11 @@
 'use client';
 
 import { useCartStore } from '../lib/store';
+import CartUpsell from './CartUpsell';
 
 export default function Cart() {
   // Traemos todo lo necesario del store
-  const { items, removeItem, isCartOpen, toggleCart, clearCart } = useCartStore();
+  const { items, removeItem, incrementItem, decrementItem, isCartOpen, toggleCart, clearCart } = useCartStore();
 
   // Calculamos el total
   const total = items.reduce((acc, item) => acc + (item.precio * item.cantidad), 0);
@@ -51,9 +52,24 @@ export default function Cart() {
                   >
                     Eliminar
                   </button>
-                  <span className="bg-neutral-700 text-white text-xs px-2 py-1 rounded">
-                    x{item.cantidad}
-                  </span>
+                  <div className="flex items-center gap-2 bg-neutral-900 rounded p-1 border border-neutral-700">
+                    <button
+                      onClick={() => decrementItem(item.id, item.talla)}
+                      className="w-6 h-6 flex items-center justify-center text-gray-400 hover:text-white"
+                      aria-label="Disminuir cantidad"
+                    >
+                      -
+                    </button>
+                    <span className="text-sm w-4 text-center font-bold text-white">{item.cantidad}</span>
+                    <button
+                      onClick={() => incrementItem(item.id, item.talla)}
+                      disabled={item.cantidad >= (item.maxStock || 999)}
+                      className="w-6 h-6 flex items-center justify-center text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed"
+                      aria-label="Aumentar cantidad"
+                    >
+                      +
+                    </button>
+                  </div>
                 </div>
               </div>
             ))
@@ -105,6 +121,9 @@ export default function Cart() {
             </button>
           </div>
         )}
+
+        {/* UPSELL SECTION */}
+        {items.length > 0 && <CartUpsell />}
       </div>
     </div>
   );

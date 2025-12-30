@@ -16,9 +16,10 @@ interface Zapatilla {
 
 interface ProductCatalogProps {
   zapatillas: Zapatilla[]; // Datos iniciales (Server Side)
+  totalItems: number; // Total de items en la base de datos
 }
 
-export default function ProductCatalog({ zapatillas: dataInicial }: ProductCatalogProps) {
+export default function ProductCatalog({ zapatillas: dataInicial, totalItems }: ProductCatalogProps) {
   // 1. ESTADO VIVO: Inicializamos con lo que trajo el servidor
   const [products, setProducts] = useState<Zapatilla[]>(dataInicial);
   const [tallaFiltro, setTallaFiltro] = useState<string | null>(null);
@@ -161,16 +162,18 @@ export default function ProductCatalog({ zapatillas: dataInicial }: ProductCatal
         </div>
       )}
 
-      {/* Botón Cargar Más */}
-      <div className="mt-12 flex justify-center">
-        <button
-          onClick={loadMore}
-          aria-label="Cargar más modelos de zapatillas"
-          className="px-8 py-3 bg-neutral-900 border border-neutral-700 text-white font-bold rounded hover:bg-neutral-800 transition-colors uppercase tracking-widest text-xs"
-        >
-          Cargar más modelos
-        </button>
-      </div>
+      {/* Botón Cargar Más - Solo si hay más items que mostrar */}
+      {products.length < totalItems && (
+        <div className="mt-12 flex justify-center">
+          <button
+            onClick={loadMore}
+            aria-label="Cargar más modelos de zapatillas"
+            className="px-8 py-3 bg-neutral-900 border border-neutral-700 text-white font-bold rounded hover:bg-neutral-800 transition-colors uppercase tracking-widest text-xs"
+          >
+            Cargar más modelos
+          </button>
+        </div>
+      )}
 
     </div>
   );

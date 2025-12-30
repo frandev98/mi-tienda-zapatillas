@@ -1,7 +1,8 @@
-'use client'; 
+'use client';
 
 import { useState, useMemo, useEffect } from 'react';
 import { useCartStore } from '../lib/store';
+import { useToastStore } from '../lib/toastStore';
 import WaitlistModal from './WaitlistModal';
 
 interface ProductCardProps {
@@ -16,10 +17,11 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ id, nombre, precio, precio_retail, imagen_url, descripcion, inventario, initialSize }: ProductCardProps) {
-  
+
   const [selectedSize, setSelectedSize] = useState<string | null>(initialSize || null);
   const [isWaitlistOpen, setIsWaitlistOpen] = useState(false);
   const addItem = useCartStore((state) => state.addItem);
+  const { showToast } = useToastStore();
 
   useEffect(() => {
     if (initialSize) {
@@ -29,31 +31,31 @@ export default function ProductCard({ id, nombre, precio, precio_retail, imagen_
 
   const { tallasDisponibles, stockTotal, stockDeLaTallaSeleccionada } = useMemo(() => {
     if (!inventario) return { tallasDisponibles: [], stockTotal: 0, stockDeLaTallaSeleccionada: 0 };
-    
+
     const tallas = Object.keys(inventario).sort();
     const total = Object.values(inventario).reduce((a, b) => a + b, 0);
     const stockSeleccionado = selectedSize ? inventario[selectedSize] : 0;
 
-    return { 
-      tallasDisponibles: tallas, 
+    return {
+      tallasDisponibles: tallas,
       stockTotal: total,
       stockDeLaTallaSeleccionada: stockSeleccionado
     };
   }, [inventario, selectedSize]);
 
   const isGlobalSoldOut = stockTotal === 0;
-  
+
   // Esta variable es la clave: Es TRUE si está agotado globalmente O si la talla elegida es 0
   const isSelectionSoldOut = isGlobalSoldOut || (selectedSize !== null && stockDeLaTallaSeleccionada === 0);
 
-  const descuento = (precio_retail && precio_retail > precio) 
-    ? Math.round(((precio_retail - precio) / precio_retail) * 100) 
+  const descuento = (precio_retail && precio_retail > precio)
+    ? Math.round(((precio_retail - precio) / precio_retail) * 100)
     : 0;
 
   // 1. ESTANDARIZACIÓN DE TEXTO: Todo es "AGOTADO"
   const getStockLabel = () => {
     if (isGlobalSoldOut) return 'AGOTADO'; // Caso Global
-    
+
     let stockParaMostrar = 0;
 
     if (selectedSize) {
@@ -63,8 +65,8 @@ export default function ProductCard({ id, nombre, precio, precio_retail, imagen_
       stockParaMostrar = stockTotal;
     }
 
-    return stockParaMostrar === 1 
-      ? '¡Solo queda 1 par!' 
+    return stockParaMostrar === 1
+      ? '¡Solo queda 1 par!'
       : `¡Quedan ${stockParaMostrar} pares!`;
   };
 
@@ -79,10 +81,19 @@ export default function ProductCard({ id, nombre, precio, precio_retail, imagen_
       return;
     }
 
+    // 1. FEEDBACK AUDITIVO
     const audio = new Audio('/sounds/buy.mp3');
     audio.volume = 0.5;
-    audio.play().catch(e => console.log(e)); 
-    
+    audio.play().catch(e => console.log(e));
+
+    // 2. FEEDBACK TÁCTIL (Haptic)
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate(15);
+    }
+
+    // 3. FEEDBACK EMOCIONAL (Toast)
+    showToast(`¡ASEGURADO! 🔥`, `Talla ${selectedSize} reservada.`);
+
     addItem({
       id,
       nombre,
@@ -90,6 +101,7 @@ export default function ProductCard({ id, nombre, precio, precio_retail, imagen_
       imagen_url,
       talla: selectedSize,
       cantidad: 1,
+      maxStock: stockDeLaTallaSeleccionada,
     });
   };
 
@@ -100,18 +112,18 @@ export default function ProductCard({ id, nombre, precio, precio_retail, imagen_
         transition-all duration-300 flex flex-col h-full
         ${isGlobalSoldOut ? 'border-neutral-700' : 'border-neutral-700 hover:border-yellow-400'}
       `}>
-        
+
         {/* IMAGEN: Ahora reacciona a isSelectionSoldOut */}
         <div className="aspect-square relative overflow-hidden bg-neutral-900">
-          <img 
-            src={imagen_url} 
+          <img
+            src={imagen_url}
             alt={nombre}
             // 2. ESTANDARIZACIÓN VISUAL: 
             // Si la selección está agotada (global o talla), se pone gris y opaca.
             className={`object-cover w-full h-full transition-transform duration-500 
               ${isSelectionSoldOut ? 'grayscale opacity-60' : 'group-hover:scale-110'}`}
           />
-          
+
           {/* Badge Descuento (Visible siempre) */}
           {descuento > 0 && (
             <div className={`
@@ -133,7 +145,7 @@ export default function ProductCard({ id, nombre, precio, precio_retail, imagen_
 
         <div className="p-5 flex flex-col flex-grow">
           <h2 className="text-lg font-bold text-white leading-tight mb-2">{nombre}</h2>
-          
+
           <div className="flex items-baseline gap-2 mb-3">
             {precio_retail && precio_retail > precio && (
               <span className="text-gray-500 text-sm line-through decoration-gray-500">
@@ -145,9 +157,9 @@ export default function ProductCard({ id, nombre, precio, precio_retail, imagen_
               ${precio.toFixed(2)}
             </span>
           </div>
-          
+
           <p className="text-gray-400 text-sm mb-4 line-clamp-2 flex-grow">{descripcion}</p>
-          
+
           <div className="mb-4">
             <span className="text-xs text-gray-500 mb-2 block uppercase tracking-wide">
               {isGlobalSoldOut ? 'Selecciona talla para lista de espera:' : 'Selecciona tu talla:'}
@@ -164,12 +176,12 @@ export default function ProductCard({ id, nombre, precio, precio_retail, imagen_
                     className={`
                       relative text-sm px-3 py-1 rounded border transition-all
                       ${selectedSize === talla
-                        ? (isTallaAgotada 
-                            ? 'bg-transparent text-white border-white font-bold ring-2 ring-white/50' 
-                            : 'bg-yellow-400 text-black border-yellow-400 font-bold scale-110')
+                        ? (isTallaAgotada
+                          ? 'bg-transparent text-white border-white font-bold ring-2 ring-white/50'
+                          : 'bg-yellow-400 text-black border-yellow-400 font-bold scale-110')
                         : (isTallaAgotada
-                            ? 'bg-neutral-900 text-neutral-500 border-neutral-800 border-dashed hover:border-neutral-500' 
-                            : 'bg-transparent text-gray-300 border-neutral-600 hover:border-white')
+                          ? 'bg-neutral-900 text-neutral-500 border-neutral-800 border-dashed hover:border-neutral-500'
+                          : 'bg-transparent text-gray-300 border-neutral-600 hover:border-white')
                       }
                     `}
                   >
@@ -180,22 +192,22 @@ export default function ProductCard({ id, nombre, precio, precio_retail, imagen_
             </div>
           </div>
 
-          <button 
+          <button
             onClick={handleMainAction}
             className={`
               w-full font-bold py-3 rounded transition-all duration-200 uppercase tracking-wide
-              ${!selectedSize 
+              ${!selectedSize
                 ? 'bg-neutral-700 text-neutral-500 cursor-not-allowed'
-                : isSelectionSoldOut 
-                  ? 'bg-white text-black hover:bg-gray-200' 
+                : isSelectionSoldOut
+                  ? 'bg-white text-black hover:bg-gray-200'
                   : 'bg-yellow-400 text-black hover:bg-yellow-300 shadow-[0_0_15px_rgba(250,204,21,0.4)]'
               }
             `}
           >
-            {!selectedSize 
-              ? 'ELIGE TU TALLA' 
-              : isSelectionSoldOut 
-                ? '🔔 AVÍSAME CUANDO LLEGUE' 
+            {!selectedSize
+              ? 'ELIGE TU TALLA'
+              : isSelectionSoldOut
+                ? '🔔 AVÍSAME CUANDO LLEGUE'
                 : 'AGREGAR AL CARRITO'
             }
           </button>
@@ -203,7 +215,7 @@ export default function ProductCard({ id, nombre, precio, precio_retail, imagen_
       </div>
 
       {selectedSize && (
-        <WaitlistModal 
+        <WaitlistModal
           isOpen={isWaitlistOpen}
           onClose={() => setIsWaitlistOpen(false)}
           productName={nombre}
